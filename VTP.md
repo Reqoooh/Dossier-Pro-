@@ -27,3 +27,4 @@
 ```
 #vtp pruning
 ```
+Quand le pruning VTP est activé, un switch envoie seulement le trafic des VLANs qui sont réellement utilisés par les autres switches connectés. Si un VLAN particulier n'est pas utilisé par un switch, le trafic de ce VLAN ne sera pas envoyé sur le lien trunk vers ce switch.
