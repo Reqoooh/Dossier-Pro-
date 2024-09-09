@@ -10,7 +10,14 @@ Sw1#configure terminal
 ```
 #Sw1(config-if-range)#channel-group 1 mode active
 ```
-## Creating a port-channel interface Port-channel 1 
+
+Explication :
+Cette commande crée un groupe d'agrégation de liens nommé channel-group 1 en utilisant le protocole LACP (Link Aggregation Control Protocol) en mode "actif".
+
+channel-group 1 : Désigne le numéro du groupe d'agrégation (ou EtherChannel) qui sera utilisé pour regrouper les interfaces sélectionnées.
+mode active : Utilise le protocole LACP en mode actif. En mode "actif", le switch envoie activement des paquets LACP pour établir et maintenir l'agrégation de liens avec le switch ou dispositif partenaire, en s'assurant que l'autre côté participe également à l'agrégation.
+
+## Création d'une interface de port-channel
 ```
 Sw1(config-if-range)#exit
 ```
