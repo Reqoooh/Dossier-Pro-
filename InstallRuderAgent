@@ -1,14 +1,25 @@
-INSTALLATION_RUDDER_SUR_UN_CLIENT
-INSTALLATION RUDDER SUR UN CLIENT
-Requete de l'agent rudder pour le client
+## INSTALLATION RUDDER SUR UN CLIENT 
+# Requete de l'agent rudder pour le client 
+```
 wget --quiet -O /etc/apt/trusted.gpg.d/rudder_apt_key.gpg "https://repository.rudder.io/apt/rudder_apt_key.gpg" 
-Ajout du repertoire a notre linux
+```
+# Ajout du repertoire a notre linux 
+```
 echo "deb http://repository.rudder.io/apt/7.2/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/rudder.list
-Update les repository
+```
+# Update les repository
+```
 apt update
-Installation du service rudder-agent pour le client
+```
+# Installation du service rudder-agent pour le client 
+```
 apt installer rudder-agent
-Configuration de rudder-agent
+```
+# Configuration de rudder-agent 
+```
 sudo rudder agent policy-server <ip-or-hostname>
-Relancer le services rudder agent
+```
+# Relancer le services rudder agent    
+```
 rudder agent restart
+```
