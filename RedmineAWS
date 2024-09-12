@@ -1,0 +1,176 @@
+
+Tuto Redmine sous aws debian
+Mise a jour de la machine
+apt update 
+apt upgrade
+Installation des outils et des dependances
+apt install build-essential \
+	ruby-dev \
+	libxslt1-dev \
+	libmariadb-dev \
+	libxml2-dev \
+	zlib1g-dev \
+	imagemagick \
+	libmagickwand-dev \
+	curl \
+	gnupg2 \
+	bison \
+	libbison-dev \
+	libgdbm-dev \
+	libncurses-dev \
+	libncurses5-dev \
+	libreadline-dev \
+	libssl-dev \
+	libyaml-dev \
+	libsqlite3-dev \
+	sqlite3 -y
+Installation de APACHE2
+apt install apache2 libapache2-mod-passenger
+Demarrage du service APACHE 2
+systemctl enable --now apache2
+Verification de la version de ruby
+ruby -v
+Reponse :
+ruby 3.1.2p20 (2022-04-12 revision 4491bb740a) [x86_64-linux-gnu]
+Creation de l'utilisateur Systeme pour redmine qui peut utiliser les dependances
+useradd -r -m -d /opt/redmine -s /usr/bin/bash redmine
+Ajout de l'utilisateur du Server Web apache au groupe redmine
+usermod -aG redmine www-data
+Installation de Maria-DB
+apt install mariadb-server
+Demarrage du service Maria-DB
+systemctl enable --now mariadb
+Securisation de MySQL
+mysql_secure_installation
+Creation de la base de donne Redmine
+mysql -u root -p
+Cli pour creation de la base de donnees ( Changer le P@ssW0rD par celui que vous voulait)
+create database redminedb;
+grant all on redminedb.* to redmineuser@localhost identified by 'P@ssW0rD';
+flush privileges;
+quit 
+Telechargement de Redmine
+curl -s https://www.redmine.org/releases/redmine-5.1.0.tar.gz | \
+Extraction de redmine dans /opt/redmine
+sudo -u redmine tar xz -C /opt/redmine/ --strip-components=1
+Connection avec l'utilisateur Redmine
+su - redmine
+Copie des fichiers de config
+cp /opt/redmine/config/configuration.yml{.example,}
+cp /opt/redmine/public/dispatch.fcgi{.example,}
+cp /opt/redmine/config/database.yml{.example,}
+Ouverture du fichier Database.yml
+nano /opt/redmine/config/database.yml
+Configuration type du fichier Database.yml pour ce connecter a la database
+...
+production:
+  adapter: mysql2
+  database: redminedb
+  host: localhost
+  username: redmineuser
+  password: "P@ssW0rD"
+  # Use "utf8" instead of "utfmb4" for MySQL prior to 5.7.7
+  encoding: utf8mb4
+...
+Deconnexion de l'utilisateur Redmine
+exit
+Permet de se placer dans le repertoire /opt/redmine
+cd /opt/redmine
+Installation de bundler pour manager les dependances de Gem
+sudo gem install bundler
+Connection avec l'utilisateur Redmine
+su - redmine
+Installation des dependances + attributions du chemin
+bundle config set --local path 'vendor/bundle'
+bundle install
+Mise a jours des bundles
+bundle update
+Installation des mises a jours io-wait et strscan
+gem install io-wait swebricktrscan  --user-install
+Generation du token pour la session prive
+bundle exec rake generate_secret_token
+Migration de la database
+RAILS_ENV=production bundle exec rake db:migrate
+Configuration de la database par defaut
+RAILS_ENV=production REDMINE_LANG=en bundle exec rake redmine:load_default_data
+Creations des repertoires
+for i in tmp tmp/pdf public/plugin_assets; do [ -d $i ] || mkdir -p $i; done
+Configuration des droits et permissions
+chown -R redmine:redmine files log tmp public/plugin_assets
+chmod -R 755 /opt/redmine
+Deconnexion de l'utilisateur Redmine
+exit
+Ouverture du port 3000 en TCP
+sudo ufw allow 3000/tcp
+Connection avec l'utilisateur Redmine
+su - redmine
+Ajout de Webrick au Fichier GEM
+echo 'gem "webrick"' >> Gemfile
+Installation du bundle
+bundle install
+Execution du bundle
+bundle exec rails server -u webrick -e production
+Reponse :
+=> Booting WEBrick
+=> Rails 6.1.7.6 application starting in production http://0.0.0.0:3000
+=> Run `bin/rails server --help` for more startup options
+[2023-11-12 18:54:22] INFO  WEBrick 1.8.1
+[2023-11-12 18:54:22] INFO  ruby 3.0.2 (2021-07-07) [x86_64-linux-gnu]
+[2023-11-12 18:54:22] INFO  WEBrick::HTTPServer#start: pid=8940 port=3000
+Deconnexion de l'utilisateur Redmine
+exit
+Installation de Snapd
+apt install snapd
+Installation de Certbot
+snap install --classic certbot
+Preparation des commande pour certbot
+ln -s /snap/bin/certbot /usr/bin/certbot
+Demande du Certificat
+certbot --apache
+Creation du fichier host
+nano /etc/apache2/sites-available/redmine.conf
+Fichier Host Type
+                                            
+    Listen 3000
+    <VirtualHost *:3000>
+        ServerName hexagone.reqoh.com
+        RailsEnv production
+        DocumentRoot /opt/redmine/public
+
+        <Directory "/opt/redmine/public">
+                Allow from all
+                Require all granted
+        </Directory>
+        ErrorLog ${APACHE_LOG_DIR}/redmine_error.log
+        CustomLog ${APACHE_LOG_DIR}/redmine_access.log combined
+        SSLEngine on
+        SSLCertificateFile   /etc/letsencrypt/live/hexagone.reqoh.com/fullchain.pem
+        SSLCertificateKeyFile  /etc/letsencrypt/live/hexagone.reqoh.com/privkey.pem
+    </VirtualHost>
+Desactivation du site part defaut
+a2dissite 000-default.conf
+Test de la config apache
+apachectl configtest
+Reponse:
+Syntax OK
+Verification que le module passenger est charge
+apache2ctl -M | grep -i passenger
+Reponse:
+passenger_module (shared)
+Permet d'activer le mode passenger si il n'est pas charger
+a2enmod passenger
+Activation du site redmine
+sudo a2ensite redmine
+Redemarrage du systeme apache2
+sudo systemctl restart apache2
+Verification que le port 3000 ecoute
+sudo lsof -i :3000
+Reponse:
+COMMAND  PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+apache2 7630     root    6u  IPv6  48985      0t0  TCP *:3000 (LISTEN)
+apache2 7645 www-data    6u  IPv6  48985      0t0  TCP *:3000 (LISTEN)
+apache2 7646 www-data    6u  IPv6  48985      0t0  TCP *:3000 (LISTEN)
+Addresse pour ce connecter
+https://server-IP-or-ddomain-address:3000.
+Credentials par defaut
+Default credentials: admin:admin.
